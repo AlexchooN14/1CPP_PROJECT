@@ -1,0 +1,25 @@
+[
+    {
+        "authors": [
+            "Harry Potter",
+            "Harmayani Nice",
+            "HAha Funny"
+        ],
+        "date_mon_accepted": [
+            2002,
+            3,
+            14
+        ],
+        "edition": 3,
+        "heading": "Some New Heading",
+        "is_mon_accepted": true,
+        "isbn_number": "123123123",
+        "price": 123,
+        "print_run": 4,
+        "release_date": [
+            2003,
+            3,
+            14
+        ]
+    }
+]

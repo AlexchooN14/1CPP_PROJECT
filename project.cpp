@@ -1,3 +1,18 @@
+// TODO LIST
+// Separate into files
+
+// Да има възможност за избор на книгоразпространител и за него да се порычват различни 
+// учебници, като се изчислява общата цена на порьчката
+
+// DONE: Необходимо е да извършвате проверка на входните данни
+
+// Данните да се четат и съхраняват във файл
+
+// Класовете да се опишат с UML клас диаграма
+
+// Да се изготви документация, която да се предаде по време на зашитата на проекта!
+
+
 #include <iostream>
 #include <vector>
 #include <conio.h> // Изисква се за използване на _getch() в Windows
@@ -5,8 +20,13 @@
 #include <functional>  // for the function template
 #include <ctime>
 #include <iomanip> // For get_time
+#include <fstream>
+// From GITHUB nlohmann/json: JSON for Modern C++
+// used for reading/writing to JSON file
+#include "json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
 
 #define KEYBOARD_BUTTON_UP      72
 #define KEYBOARD_BUTTON_DOWN    80
@@ -14,7 +34,18 @@ using namespace std;
 #define KEYBOARD_CTRL_C         3
 #define KEYBOARD_ESC            27
 
+#define TEXTBOOKS_FILENAME   "textbooks.json"
+#define BOOKSELLERS_FILENAME "booksellers.json"
 
+static bool isValidText(const string& input);
+static bool isValidNumber(const string& input);
+static bool isValidString(const string& input);
+static bool isValidPhoneNumber(const string& phone_number);
+static bool isNonNegativeNumber(const string& input);
+static bool isValidDate(const string& input);
+static bool isValidBool(string& input);
+static string handleInput(function<bool(string&)> validator);
+static bool stringToBool(string& str);
 static void handleAddNewTextbook();
 static void handleAddNewBookseller();
 static void displayAllTextbooks();
@@ -38,12 +69,7 @@ ostream& operator<<(ostream& os, const tm& time) {
     os << put_time(&time, "%Y-%m-%d");
     return os;
 }
-bool stringToBool(const string& str) {
-    for_each(str.begin(), str.end(), [](char &c) {
-        c = tolower(c);
-    });
-    return (str == "true" || str == "1" || str == "yes");
-}
+
 
 class Textbook {
 private:
@@ -128,6 +154,8 @@ public:
     }
 
     friend ostream& operator<<(ostream& os, const Textbook& tb);
+    friend void to_json(json& j, const Textbook& tb);
+    friend void from_json(const json& j, Textbook& tb);
 };
 ostream& operator<<(ostream& os, const Textbook& tb) {
     os << "Textbook Heading: " << tb.getHeading() << endl
@@ -146,6 +174,41 @@ ostream& operator<<(ostream& os, const Textbook& tb) {
     // Return the output stream to allow chaining
     return os;
 }
+void to_json(json& j, const Textbook& tb) {
+    j = json{
+        {"heading", tb.heading},
+        {"authors", tb.authors},
+        {"edition", tb.edition},
+        {"isbn_number", tb.isbn_number},
+        {"print_run", tb.print_run},
+        {"release_date", {tb.release_date.tm_year + 1900, tb.release_date.tm_mon + 1, tb.release_date.tm_mday}},
+        {"is_mon_accepted", tb.is_mon_accepted},
+        {"date_mon_accepted", {tb.date_mon_accepted.tm_year + 1900, tb.date_mon_accepted.tm_mon + 1, tb.date_mon_accepted.tm_mday}},
+        {"price", tb.price}
+    };
+}
+void from_json(const json& j, Textbook& tb) {
+    j.at("heading").get_to(tb.heading);
+    j.at("authors").get_to(tb.authors);
+    j.at("edition").get_to(tb.edition);
+    j.at("isbn_number").get_to(tb.isbn_number);
+    j.at("print_run").get_to(tb.print_run);
+    auto release_date = j.at("release_date");
+    tb.release_date.tm_year = release_date[0].get<int>() - 1900; // Year since 1900
+    tb.release_date.tm_mon = release_date[1].get<int>() - 1; // 0-11 for months
+    tb.release_date.tm_mday = release_date[2].get<int>(); // Day of the month
+
+    j.at("is_mon_accepted").get_to(tb.is_mon_accepted);
+    
+    // Extract the date_mon_accepted array
+    auto date_mon_accepted = j.at("date_mon_accepted");
+    tb.date_mon_accepted.tm_year = date_mon_accepted[0].get<int>() - 1900;
+    tb.date_mon_accepted.tm_mon = date_mon_accepted[1].get<int>() - 1;
+    tb.date_mon_accepted.tm_mday = date_mon_accepted[2].get<int>();
+
+    j.at("price").get_to(tb.price);
+}
+
 
 class Bookseller {
 private:
@@ -259,7 +322,6 @@ public:
     }
 };
 
-// TODO: проверка на входните данни
 static void handleAddNewTextbook() {
     string input;
     Textbook tb;
@@ -267,46 +329,48 @@ static void handleAddNewTextbook() {
 
     cout << "Please enter following parameters for new Textbook:" << endl;
     cout << "Textbook heading:" << endl;
-    getline(cin, input);
+    input = handleInput(isValidText);
     tb.setHeading(input);
+
     cout << "Textbook price:" << endl;
-    getline(cin, input);
+    input = handleInput(isNonNegativeNumber);
     tb.setPrice(stoi(input));
+
     cout << "Textbook Authors Count:" << endl;
-    getline(cin, input);
+    input = handleInput(isNonNegativeNumber);
     for (int i = 0; i < stoi(input); i++) {
         string author;
         cout << "Textbook Author " << i << " name:" << endl;
-        getline(cin, author);
+        author = handleInput(isValidText);
         tb.addAuthorToAuthors(author);
     }
     cout << "Textbook edition:" << endl;
-    getline(cin, input);
+    input = handleInput(isNonNegativeNumber);
     tb.setEdition(stoi(input));
 
     cout << "Textbook ISBN number:" << endl;
-    getline(cin, input);
+    input = handleInput(isNonNegativeNumber);
     tb.setIsbnNumber(input);
 
     cout << "Textbook Print Run:" << endl;
-    getline(cin, input);
+    input = handleInput(isNonNegativeNumber);
     tb.setPrintRun(stoi(input));
 
     cout << "Textbook release date (Year-Month-Date):" << endl;
-    getline(cin, input);
+    input = handleInput(isValidDate);
     // Convert string to tm struct
     istringstream ss(input);
     ss >> get_time(&release_date, "%Y-%m-%d");
     tb.setReleaseDate(release_date);
 
     cout << "Is Textbook Accepted by MON (True/False):" << endl;
-    getline(cin, input);
+    input = handleInput(isValidBool);
     bool mon_accepted = stringToBool(input);
-    tb.setIsMonAccepted(stringToBool(input));
+    tb.setIsMonAccepted(mon_accepted);
 
     if (mon_accepted) {
         cout << "Textbook MON acception date (Year-Month-Date):" << endl;
-        getline(cin, input);
+        input = handleInput(isValidDate);
         // Convert string to tm struct
         istringstream ss(input);
         ss >> get_time(&date_mon_accepted, "%Y-%m-%d");
@@ -318,16 +382,21 @@ static void handleAddNewTextbook() {
 }
 
 static void handleAddNewBookseller() {
-    string name, address, phone_number;
+    string input;
+    Bookseller bs;
     cout << "Please enter name, address and phone number for the new bookseller:" << endl;
     cout << "Bookseller name:" << endl;
-    getline(cin, name);
+    input = handleInput(isValidString);
+    bs.setName(input);
+    
     cout << "Bookseller address:" << endl;
-    getline(cin, address);
-    cout << "Bookseller phone number:" << endl;
-    getline(cin, phone_number);
+    input = handleInput(isValidString);
+    bs.setAddress(input);
 
-    Bookseller bs(name, address, phone_number);
+    cout << "Bookseller phone number:" << endl;
+    input = handleInput(isValidPhoneNumber);
+    bs.setPhoneNumber(input);
+
     all_booksellers.push_back(bs);
     new_bookseller_added = true;
 }
@@ -350,20 +419,163 @@ static void displayAllBooksellers() {
     system("pause");
 }
 
+void saveTextbooksToFile(const string& filename) {
+    // Тук можем директно да сериализираме обекта към JSON защото предефинирахме функциите 
+    // to_json и from_json, както например се предефинира оператор
+    json j = all_textbooks;
+    ofstream file(filename);
+    if (file.is_open()) {
+        // Идентираме файла с 1 таб разстояние и записваме JSON обекта
+        file << setw(4) << j;
+        file.close();
+    } else {
+        cout << "There was error opening the Textbooks file.";
+    }
+}
+
+vector<Textbook> loadTextbooksFromFile(const string& filename) {
+    vector<Textbook> textbooks;
+    ifstream file(filename);
+
+    if (!file.is_open()) {
+        cout << "Could not open the file: " << filename << endl;
+        return textbooks;
+    }
+
+    json j;
+    file >> j;
+    for (const auto& item : j) {
+        textbooks.push_back(item.get<Textbook>());
+    }
+
+    return textbooks;
+}
+
+
+// saveBooksellersToFile
+
 static void writeNewDataToFile() {
     if (!new_bookseller_added && !new_textbook_added) {
         return;
     }
-    // make them false
-    // write them
+    
+    if (new_bookseller_added) {
+        new_bookseller_added = false;
+        // saveBooksellersToFile();
+    }
+    if (new_textbook_added) {
+        new_textbook_added = false;
+        saveTextbooksToFile(TEXTBOOKS_FILENAME);
+    }
+}
 
 
+static bool isValidString(const string& input) {
+    return !input.empty();
+}
+
+static bool isValidText(const string& input) {
+    return isValidString(input) && !isValidNumber(input);
+}
+
+static bool isValidNumber(const string& input) {
+    if (!isValidString(input)) return false;
+
+    for (size_t i = 0; i < input.size(); ++i) {
+        if (!isdigit(input[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool isNonNegativeNumber(const string& input) {
+    if (!isValidString(input)) return false;
+    if (!isValidNumber(input)) return false;
+    if (input[0] == '-') return false;
+    
+    return true;
+}
+
+static bool isValidPhoneNumber(const string& input) {
+    // Check if the phone number is non-empty and contains only digits or starts with '+'
+    if (input.empty()) return false;
+    for (size_t i = 0; i < input.size(); ++i) {
+        if (!isdigit(input[i]) && (i != 0 || input[i] != '+')) {
+            return false;  // Invalid character found
+        }
+    }
+    return true;
+}
+
+static bool isValidDate(const string& input) {
+    istringstream ss(input);
+    tm date = {};
+
+    ss >> get_time(&date, "%Y-%m-%d");
+
+    /*
+    Stream Failure Flag (failbit):
+    When using input streams in C++ (like std::istringstream), the fail() function returns true if a 
+    read or parse operation did not complete successfully.
+    This can happen if the input string doesn’t match the expected format.
+    */
+    if (ss.fail())
+        return false;
+
+    // Зададените стойности за ден месец, година не са валидни
+    if (date.tm_year < 0 || date.tm_mon < 0 || date.tm_mon > 11 || date.tm_mday < 0 || date.tm_mday > 31)
+        return false;
+
+    // Не е краят на стрийма, тоест има още символи извън необходимите
+    if (!ss.eof())
+        return false;
+
+    return true;
+}
+
+static bool isValidBool(string& input) {
+    if (!isValidString(input)) return false;
+    for_each(input.begin(), input.end(), [](char &c) {
+        c = tolower(c);
+    });
+    if (input == "true" || input == "yes" || input == "1" ||
+        input == "false" || input == "no" || input == "0") {
+            return true;
+        }
+    return false;
+}
+
+static bool stringToBool(string& str) {
+    for_each(str.begin(), str.end(), [](char &c) {
+        c = tolower(c);
+    });
+    return (str == "true" || str == "1" || str == "yes");
+}
+
+static string handleInput(function<bool(string&)> validator) {
+    string input;
+
+    while (true) {
+        getline(cin, input);
+
+        if (validator(input)) {
+            return input;
+        }
+
+        cout << "Invalid input. Try again!" << endl;
+    }
+
+    return NULL;
 }
 
 
 int main() {
 
     ConsoleMenu menu;
+    // Зареждаме вече запазените във файловете данни
+    // all_booksellers = getAll
+    all_textbooks = loadTextbooksFromFile(TEXTBOOKS_FILENAME);
 
     while(true) {
         menu.displayMenu();

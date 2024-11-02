@@ -1,22 +1,19 @@
+# Makefile
+
 # Compiler
 CXX = g++
-
-# Compiler flags
-CXXFLAGS = -Wall -Wextra -std=c++11
+CXXFLAGS = -Wall -std=c++11
 
 # Source files
-SRC = main.cpp console_menu.cpp textbook.cpp bookseller.cpp utilities.cpp data_management.cpp
+SOURCES = main.cpp console_menu.cpp file_manager.cpp utils.cpp bookseller.cpp textbook.cpp
 
-# Executable name
-EXEC = MyBooksellerApp
+# Output executable
+OUTPUT = course_project
 
-# Default target to build the executable
-$(EXEC): $(SRC)
-	$(CXX) $(CXXFLAGS) -o $@ $^
+# Rule to build the program
+all: $(SOURCES)
+	$(CXX) $(CXXFLAGS) -o $(OUTPUT) $(SOURCES)
 
-# Clean target to remove the executable
+# Clean rule to remove the compiled files
 clean:
-	rm -f $(EXEC)
-
-# Phony targets
-.PHONY: clean
+	rm -f $(OUTPUT)

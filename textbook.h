@@ -3,27 +3,27 @@
 
 #include <string>
 #include <vector>
-#include <ctime>
-#include <iostream>
+// From GITHUB nlohmann/json: JSON for Modern C++
+// used for reading/writing to JSON file
+#include "json.hpp"
 
 using namespace std;
+using json = nlohmann::json;
 
 class Textbook {
 private:
     string heading;
     vector<string> authors;
-    int edition;
+    int edition;  // Поредно издание
     string isbn_number;
-    int print_run;
+    int print_run;  // Тираж
     tm release_date;
-    bool is_mon_accepted;
+    bool is_mon_accepted = false;
     tm date_mon_accepted;
     int price;
+    //  TODO : Add Bookseller somehow ??
 
 public:
-    Textbook();
-    Textbook(string heading, int price, int edition, string isbn_number, int print_run, tm release_date, bool is_mon_accepted, tm date_mon_accepted);
-    
     string getHeading() const;
     void setHeading(string heading);
     vector<string> getAuthors() const;
@@ -42,8 +42,15 @@ public:
     void setDateMonAccepted(tm date_mon_accepted);
     int getPrice() const;
     void setPrice(int price);
-    
+
+    Textbook();
+    Textbook(string heading, int price, int edition, string isbn_number, int print_run, tm release_date,
+            bool is_mon_accepted, tm date_mon_accepted);
+
     friend ostream& operator<<(ostream& os, const Textbook& tb);
+    friend void to_json(json& j, const Textbook& tb);
+    friend void from_json(const json& j, Textbook& tb);
 };
+
 
 #endif // TEXTBOOK_H

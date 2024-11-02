@@ -21,5 +21,26 @@
             3,
             14
         ]
+    },
+    {
+        "authors": [
+            "aaaaaaa"
+        ],
+        "date_mon_accepted": [
+            1900,
+            1,
+            0
+        ],
+        "edition": 3,
+        "heading": "asdas",
+        "is_mon_accepted": false,
+        "isbn_number": "12312312",
+        "price": 123,
+        "print_run": 4,
+        "release_date": [
+            2003,
+            3,
+            14
+        ]
     }
 ]

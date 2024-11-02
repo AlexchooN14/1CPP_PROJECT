@@ -1,113 +1,10 @@
 #include "console_menu.h"
-#include <iostream>
-#include <conio.h> // For getch
-#include "textbook.h"
-#include "bookseller.h"
-#include "utilities.h"
+#include "main.h"
+#include <map>
+#include <functional>  // for the function template
+#include <conio.h> // Изисква се за използване на _getch() в Windows
 
 using namespace std;
-
-
-// TODO: проверка на входните данни
-static void handleAddNewTextbook() {
-    string input;
-    Textbook tb;
-    tm release_date, date_mon_accepted;
-
-    cout << "Please enter following parameters for new Textbook:" << endl;
-    cout << "Textbook heading:" << endl;
-    getline(cin, input);
-    tb.setHeading(input);
-    cout << "Textbook price:" << endl;
-    getline(cin, input);
-    tb.setPrice(stoi(input));
-    cout << "Textbook Authors Count:" << endl;
-    getline(cin, input);
-    for (int i = 0; i < stoi(input); i++) {
-        string author;
-        cout << "Textbook Author " << i << " name:" << endl;
-        getline(cin, author);
-        tb.addAuthorToAuthors(author);
-    }
-    cout << "Textbook edition:" << endl;
-    getline(cin, input);
-    tb.setEdition(stoi(input));
-
-    cout << "Textbook ISBN number:" << endl;
-    getline(cin, input);
-    tb.setIsbnNumber(input);
-
-    cout << "Textbook Print Run:" << endl;
-    getline(cin, input);
-    tb.setPrintRun(stoi(input));
-
-    cout << "Textbook release date (Year-Month-Date):" << endl;
-    getline(cin, input);
-    // Convert string to tm struct
-    istringstream ss(input);
-    ss >> get_time(&release_date, "%Y-%m-%d");
-    tb.setReleaseDate(release_date);
-
-    cout << "Is Textbook Accepted by MON (True/False):" << endl;
-    getline(cin, input);
-    bool mon_accepted = stringToBool(input);
-    tb.setIsMonAccepted(stringToBool(input));
-
-    if (mon_accepted) {
-        cout << "Textbook MON acception date (Year-Month-Date):" << endl;
-        getline(cin, input);
-        // Convert string to tm struct
-        istringstream ss(input);
-        ss >> get_time(&date_mon_accepted, "%Y-%m-%d");
-        tb.setDateMonAccepted(date_mon_accepted);
-    }
-    
-    all_textbooks.push_back(tb);
-    new_textbook_added = true;
-}
-
-static void handleAddNewBookseller() {
-    string name, address, phone_number;
-    cout << "Please enter name, address and phone number for the new bookseller:" << endl;
-    cout << "Bookseller name:" << endl;
-    getline(cin, name);
-    cout << "Bookseller address:" << endl;
-    getline(cin, address);
-    cout << "Bookseller phone number:" << endl;
-    getline(cin, phone_number);
-
-    Bookseller bs(name, address, phone_number);
-    all_booksellers.push_back(bs);
-    new_bookseller_added = true;
-}
-
-static void displayAllTextbooks() {
-    cout << "\\/=== All Textbooks ===\\/" << endl;
-    for (const Textbook& textbook : all_textbooks) {
-        cout << textbook << endl;
-        cout << endl;
-    }
-    system("pause");
-}
-
-static void displayAllBooksellers() {
-    cout << "\\/=== All Booksellers ===\\/" << endl;
-    for (const Bookseller& bookseller : all_booksellers) {
-        cout << bookseller << endl;
-        cout << endl;
-    }
-    system("pause");
-}
-
-static void writeNewDataToFile() {
-    if (!new_bookseller_added && !new_textbook_added) {
-        return;
-    }
-    // make them false
-    // write them
-
-
-}
 
 
 ConsoleMenu::ConsoleMenu () {
@@ -117,7 +14,16 @@ ConsoleMenu::ConsoleMenu () {
         {"Display all Textbooks", displayAllTextbooks},
         {"Display all Book Sellers", displayAllBooksellers},
     };
-    setNewActiveMenuOption(0);  // By default the first option of the menu is active
+    // Задаваме първото меню като избрано по подразбиране
+    setNewActiveMenuOption(0);
+}
+
+void ConsoleMenu::setNewActiveMenuOption(int option_number) {
+    this->menuOptionActive = option_number;
+}
+
+int ConsoleMenu::getNewActiveMenuOption() {
+    return this->menuOptionActive;
 }
 
 void ConsoleMenu::displayMenu() {
@@ -157,10 +63,115 @@ void ConsoleMenu::handleUserInput() {
     }
 }
 
-void ConsoleMenu::setNewActiveMenuOption(int option_number) {
-    this->menuOptionActive = option_number;
+string handleInput(function<bool(string&)> validator) {
+    string input;
+
+    while (true) {
+        getline(cin, input);
+
+        if (validator(input)) {
+            return input;
+        }
+
+        cout << "Invalid input. Try again!" << endl;
+    }
+
+    return NULL;
 }
 
-int ConsoleMenu::getNewActiveMenuOption() {
-    return this->menuOptionActive;
+void handleAddNewTextbook() {
+    string input;
+    Textbook tb;
+    tm release_date, date_mon_accepted;
+
+    cout << "Please enter following parameters for new Textbook:" << endl;
+    cout << "Textbook heading:" << endl;
+    input = handleInput(isValidText);
+    tb.setHeading(input);
+
+    cout << "Textbook price:" << endl;
+    input = handleInput(isNonNegativeNumber);
+    tb.setPrice(stoi(input));
+
+    cout << "Textbook Authors Count:" << endl;
+    input = handleInput(isNonNegativeNumber);
+    for (int i = 0; i < stoi(input); i++) {
+        string author;
+        cout << "Textbook Author " << i << " name:" << endl;
+        author = handleInput(isValidText);
+        tb.addAuthorToAuthors(author);
+    }
+    cout << "Textbook edition:" << endl;
+    input = handleInput(isNonNegativeNumber);
+    tb.setEdition(stoi(input));
+
+    cout << "Textbook ISBN number:" << endl;
+    input = handleInput(isNonNegativeNumber);
+    tb.setIsbnNumber(input);
+
+    cout << "Textbook Print Run:" << endl;
+    input = handleInput(isNonNegativeNumber);
+    tb.setPrintRun(stoi(input));
+
+    cout << "Textbook release date (Year-Month-Date):" << endl;
+    input = handleInput(isValidDate);
+    // Convert string to tm struct
+    istringstream ss(input);
+    ss >> get_time(&release_date, "%Y-%m-%d");
+    tb.setReleaseDate(release_date);
+
+    cout << "Is Textbook Accepted by MON (True/False):" << endl;
+    input = handleInput(isValidBool);
+    bool mon_accepted = stringToBool(input);
+    tb.setIsMonAccepted(mon_accepted);
+
+    if (mon_accepted) {
+        cout << "Textbook MON acception date (Year-Month-Date):" << endl;
+        input = handleInput(isValidDate);
+        // Convert string to tm struct
+        istringstream ss(input);
+        ss >> get_time(&date_mon_accepted, "%Y-%m-%d");
+        tb.setDateMonAccepted(date_mon_accepted);
+    }
+    
+    all_textbooks.push_back(tb);
+    new_textbook_added = true;
+}
+
+void handleAddNewBookseller() {
+    string input;
+    Bookseller bs;
+    cout << "Please enter name, address and phone number for the new bookseller:" << endl;
+    cout << "Bookseller name:" << endl;
+    input = handleInput(isValidText);
+    bs.setName(input);
+    
+    cout << "Bookseller address:" << endl;
+    input = handleInput(isValidText);
+    bs.setAddress(input);
+
+    cout << "Bookseller phone number:" << endl;
+    input = handleInput(isValidPhoneNumber);
+    bs.setPhoneNumber(input);
+
+    all_booksellers.push_back(bs);
+    new_bookseller_added = true;
+}
+
+void displayAllTextbooks() {
+    cout << "\\/=== All Textbooks ===\\/" << endl;
+    for (const Textbook& textbook : all_textbooks) {
+        cout << textbook << endl;
+        cout << endl;
+    }
+    system("pause");
+}
+
+void displayAllBooksellers() {
+    cout << "\\/=== All Booksellers ===\\/" << endl;
+    for (const Bookseller& bookseller : all_booksellers) {
+        cout << bookseller << endl;
+        cout << endl;
+    }
+    system("pause");
 }

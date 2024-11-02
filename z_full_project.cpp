@@ -1,12 +1,12 @@
 // TODO LIST
-// Separate into files
+// DONE: Separate into files
 
 // Да има възможност за избор на книгоразпространител и за него да се порычват различни 
 // учебници, като се изчислява общата цена на порьчката
 
 // DONE: Необходимо е да извършвате проверка на входните данни
 
-// Данните да се четат и съхраняват във файл
+// DONE: Данните да се четат и съхраняват във файл
 
 // Класовете да се опишат с UML клас диаграма
 
@@ -15,7 +15,7 @@
 
 #include <iostream>
 #include <vector>
-#include <conio.h> // Изисква се за използване на _getch() в Windows
+#include <conio.h> // Изисква се за използване на getch() в Windows
 #include <map>
 #include <functional>  // for the function template
 #include <ctime>
@@ -51,21 +51,22 @@ static void handleAddNewBookseller();
 static void displayAllTextbooks();
 static void displayAllBooksellers();
 
-
+// Предефинираме оператора << за всякакъв тип вектори като използваме темплейт
+// Това помага за улеснено принтиране на колекциите от учебници и книгоразпространители
 template <typename T>
 ostream& operator<<(ostream& os, const vector<T>& vec) {
     os << "[";
     for (size_t i = 0; i < vec.size(); ++i) {
         os << vec[i];
         if (i < vec.size() - 1) {
-            os << ", "; // Add a comma and space between elements
+            os << ", ";
         }
     }
     os << "]";
     return os;
 }
+// Предефинираме оператора << за структурата tm за да можем по - лесно да принтираме датите
 ostream& operator<<(ostream& os, const tm& time) {
-    // Using put_time to format the output
     os << put_time(&time, "%Y-%m-%d");
     return os;
 }
@@ -244,6 +245,8 @@ public:
     }
 
     friend ostream& operator<<(ostream& os, const Bookseller& bs);
+    friend void to_json(json& j, const Bookseller& bs);
+    friend void from_json(const json& j, Bookseller& tb);
 };
 ostream& operator<<(ostream& os, const Bookseller& bs) {
     os << "Bookseller Name: " << bs.getName() << "\n"
@@ -252,6 +255,20 @@ ostream& operator<<(ostream& os, const Bookseller& bs) {
     // Return the output stream to allow chaining
     return os;
 }
+void to_json(json& j, const Bookseller& bs) {
+    j = json{
+        {"name", bs.name},
+        {"address", bs.address},
+        {"phone_number", bs.phone_number}
+    };
+}
+void from_json(const json& j, Bookseller& bs) {
+    j.at("name").get_to(bs.name);
+    j.at("address").get_to(bs.address);
+    j.at("phone_number").get_to(bs.phone_number);
+}
+
+
 
 static vector<Bookseller> all_booksellers;
 static vector<Textbook> all_textbooks;
@@ -386,11 +403,11 @@ static void handleAddNewBookseller() {
     Bookseller bs;
     cout << "Please enter name, address and phone number for the new bookseller:" << endl;
     cout << "Bookseller name:" << endl;
-    input = handleInput(isValidString);
+    input = handleInput(isValidText);
     bs.setName(input);
     
     cout << "Bookseller address:" << endl;
-    input = handleInput(isValidString);
+    input = handleInput(isValidText);
     bs.setAddress(input);
 
     cout << "Bookseller phone number:" << endl;
@@ -451,8 +468,38 @@ vector<Textbook> loadTextbooksFromFile(const string& filename) {
     return textbooks;
 }
 
+void saveBooksellersToFile(const string& filename) {
+    // Тук можем директно да сериализираме обекта към JSON защото предефинирахме функциите 
+    // to_json и from_json
+    json j = all_booksellers;
+    ofstream file(filename);
+    if (file.is_open()) {
+        // Идентираме файла с 1 таб разстояние и записваме JSON обекта
+        file << setw(4) << j;
+        file.close();
+    } else {
+        cout << "There was error opening the Booksellers file.";
+    }
+}
 
-// saveBooksellersToFile
+vector<Bookseller> loadBooksellersFromFile(const string& filename) {
+    vector<Bookseller> booksellers;
+    ifstream file(filename);
+
+    if (!file.is_open()) {
+        cout << "Could not open the file: " << filename << endl;
+        return booksellers;
+    }
+
+    json j;
+    file >> j;
+    for (const auto& item : j) {
+        booksellers.push_back(item.get<Bookseller>());
+    }
+
+    return booksellers;
+}
+
 
 static void writeNewDataToFile() {
     if (!new_bookseller_added && !new_textbook_added) {
@@ -461,7 +508,7 @@ static void writeNewDataToFile() {
     
     if (new_bookseller_added) {
         new_bookseller_added = false;
-        // saveBooksellersToFile();
+        saveBooksellersToFile(BOOKSELLERS_FILENAME);
     }
     if (new_textbook_added) {
         new_textbook_added = false;
@@ -574,7 +621,7 @@ int main() {
 
     ConsoleMenu menu;
     // Зареждаме вече запазените във файловете данни
-    // all_booksellers = getAll
+    all_booksellers = loadBooksellersFromFile(BOOKSELLERS_FILENAME);
     all_textbooks = loadTextbooksFromFile(TEXTBOOKS_FILENAME);
 
     while(true) {

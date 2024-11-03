@@ -5,6 +5,7 @@
 // #include <iostream>
 #include <map>
 #include <string>
+#include "order.h"
 #include <functional>  // for the function template
 // #include <conio.h> // Изисква се за използване на _getch() в Windows
 
@@ -31,5 +32,9 @@ void handleAddNewTextbook();
 void handleAddNewBookseller();
 void displayAllTextbooks();
 void displayAllBooksellers();
+void handleCreateNewOrder();
+void handleSelectBookseller(Order& order);
+void handleSelectTextbooks(Order& order);
+void calculateTotalOrderPrice(Order& order);
 
 #endif //CONSOLE_MENU_H

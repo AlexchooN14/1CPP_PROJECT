@@ -1,5 +1,6 @@
 #include "console_menu.h"
 #include "main.h"
+#include "order.h"
 #include <map>
 #include <functional>  // for the function template
 #include <conio.h> // Изисква се за използване на _getch() в Windows
@@ -13,6 +14,7 @@ ConsoleMenu::ConsoleMenu () {
         {"Add a new Book Seller", handleAddNewBookseller},
         {"Display all Textbooks", displayAllTextbooks},
         {"Display all Book Sellers", displayAllBooksellers},
+        {"Create an Order", handleCreateNewOrder},
     };
     // Задаваме първото меню като избрано по подразбиране
     setNewActiveMenuOption(0);
@@ -174,4 +176,56 @@ void displayAllBooksellers() {
         cout << endl;
     }
     system("pause");
+}
+
+void handleCreateNewOrder() {
+    Order order;
+    handleSelectBookseller(order);
+    handleSelectTextbooks(order);
+    calculateTotalOrderPrice(order);
+    system("pause");
+}
+
+void handleSelectBookseller(Order& order) {
+    cout << "Enter bookseller ID to choose it:" << endl;
+    size_t i;
+    for (i = 0; i < all_booksellers.size(); ++i) {
+        cout << i << ": " << all_booksellers[i].getName() << endl;
+    }
+    string input = handleInput(isNonNegativeNumber);
+    size_t index = stoi(input);
+    if (index < all_booksellers.size()) {
+        cout << "Bookseller '" << all_booksellers[index].getName() << "' selected." << endl;
+        order.setBookseller(all_booksellers[index]);
+    } else {
+        cout << "Invalid selection." << endl;
+    }
+}
+
+void handleSelectTextbooks(Order& order) {
+    cout << "Select textbooks to order:" << endl;
+    for (size_t i = 0; i < all_textbooks.size(); ++i) {
+        cout << i << ": " << all_textbooks[i].getHeading() << " - " << all_textbooks[i].getPrice() << endl;
+    }
+    string input;
+    while (true) {
+        cout << "Enter textbook index (or type 'done' to finish):" << endl;
+        getline(cin, input);
+        if (input == "done") break;
+        size_t index = stoi(input);
+        if (index < all_textbooks.size()) {
+            order.addTextbookToOrder(all_textbooks[index]);
+            cout << "Textbook " << all_textbooks[index].getHeading() << " added to order." << endl;
+        } else {
+            cout << "Invalid selection." << endl;
+        }
+    }
+}
+
+void calculateTotalOrderPrice(Order& order) {
+    int totalPrice = 0;
+    for (const Textbook& textbook : order.getOrderedTextbooks()) {
+        totalPrice += textbook.getPrice();
+    }
+    cout << "Total Order Price: " << totalPrice << " for Bookseller '" << order.getBookseller().getName() << "'" << endl;
 }

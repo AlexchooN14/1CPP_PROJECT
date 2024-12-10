@@ -3,8 +3,8 @@
 
 #include <iostream>
 #include <string>
-// From GITHUB nlohmann/json: JSON for Modern C++
-// used for reading/writing to JSON file
+// Външна библиотека, позволяваща използването на JSON файлов формат
+// GITHUB nlohmann/json
 #include "json.hpp"
 
 using namespace std;

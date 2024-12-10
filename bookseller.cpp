@@ -38,7 +38,7 @@ ostream& operator<<(ostream& os, const Bookseller& bs) {
     os << "Bookseller Name: " << bs.name << "\n"
        << "Address: " << bs.address << "\n"
        << "Phone Number: " << bs.phone_number;
-    // Return the output stream to allow chaining
+
     return os;
 }
 
